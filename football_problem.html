@@ -1,0 +1,645 @@
+
+<!-- saved from url=(0072)https://www.cse.iitb.ac.in/~shivaram/teaching/cs747-a2023/pa-2/pa-2.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    
+    <link rel="stylesheet" type="text/css" href="./CS 747_ Programming Assignment 2_files/style.css">
+    <title>CS 747: Programming Assignment 2</title>
+  </head>
+
+  <body class="vsc-initialized">
+    <center speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <h2 speechify-initial-font-family="Times" speechify-initial-font-size="24px">
+	CS 747: Programming Assignment 2
+      </h2>
+      <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">
+	(Prepared by Anvay Shah and Adit Akarsh)
+      </h3>
+    </center>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"> In this assignment, you will write code to compute an optimal 
+policy for a given MDP using the
+      algorithms that were discussed in class: Value Iteration, Howard's
+ Policy Iteration, and Linear Programming.
+      The first part of the assignment is to implement these algorithms.
+ Input to these algorithms will be an MDP
+      and the expected output is the optimal value function, along with 
+an optimal policy. You also have to add an optional command line 
+argument for the policy,
+      which <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">evaluates</i> the value function for a given policy instead of 
+finding the optimal policy, and returns the action and value function 
+for each state in the same format.</p>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">MDP solvers have a variety of applications.  As the second part of
+      this assignment, you will use your solver to find an optimal
+      policy for a team of 2 football players attempting to score a goal against a single opponent in a game of <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">football</b>.
+    </p><p speechify-initial-font-family="Times" speechify-initial-font-size="16px">This <a href="https://www.cse.iitb.ac.in/~shivaram/teaching/cs747-a2023/pa-2/code.tar.gz" speechify-initial-font-family="Times" speechify-initial-font-size="16px">compressed
+	directory</a> contains a <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">data</code> directory with sample data for both parts and helper functions to visualise
+      and test your code. Your code will also be
+      evaluated on instances other than the ones provided. </p>
+      <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">All the code you write for this assignment must be in Python 3.8.10. If necessary, you can install Python 3.8.10 for your system from <a href="https://www.python.org/downloads/release/python-3810/" speechify-initial-font-family="Times" speechify-initial-font-size="16px">here</a>. Your code will be tested using a python virtual environment. To set up the virtual environment, follow the instructions provided in virtual-env.txt which is included in the compressed directory linked above.</p>
+
+    <hr speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <h2 speechify-initial-font-family="Times" speechify-initial-font-size="24px">Part 1: MDP Planning</h2>
+    <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">Data</h3>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">In the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">mdp</code> folder in <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">data</code> directory, you are given eight MDP instances (4 each
+      for continuing and episodic tasks). A correct solution for each MDP is
+      also given in the same folder, which you can use to test your code.</p>
+    <h4 speechify-initial-font-family="Times" speechify-initial-font-size="16px">MDP file format</h4>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Each MDP is provided as a text file in the following format.</p>
+    numStates S <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    numActions A<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    end ed1 ed2 ... edn<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    transition <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">s1 ac s2 r p</i><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    transition <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">s1 ac s2 r p</i><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    . . .<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    . . .<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    . . .<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    transition <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">s1 ac s2 r p</i><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    mdptype <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">mdptype</i><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    discount <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">gamma</i>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">The number of states S and the number of actions A will be
+      integers greater than 1. There will be at most 10,000 states, and
+      at most 100 actions. Assume that the states are numbered 0, 1,
+      ..., S - 1, and the actions are numbered 0, 1, ..., A - 1. Each
+      line that begins with "transition" gives the reward and
+      transition probability corresponding to a transition, where
+      R(s1, ac, s2) = r and T(s1, ac, s2) = p. Rewards can be
+      positive, negative, or zero. Transitions with zero probabilities
+      are not specified. You can assume that
+      there will be at most 350,000 transitions with non-zero
+      probabilities in the input MDP. <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">mdptype</i>
+      will be one of <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">continuing</code> and
+      <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">episodic</code>. The discount factor <i speechify-initial-font-family="Times" speechify-initial-font-size="16px">gamma</i> is a real number between 0 (included) and 1 (included).
+      Recall that gamma is a part of the MDP: you must not change it inside your solver! Also recall that it is okay to
+      use gamma = 1 in episodic tasks that guarantee termination; you will find such an example among the ones given.</p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">To get familiar with the MDP file format, you can view and run <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">generateMDP.py</code> (provided in the
+      <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">base</code> directory), which is a python script used to generate random MDPs. Specify the number of states
+      and actions, the discount factor, type of MDP (episodic or continuing), and the random seed as command-line
+      arguments to this file. Two examples of how this script can be invoked are given below.</p>
+    <ul speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python generateMDP.py  --S 2 --A 2 --gamma 0.90 --mdptype episodic --rseed 0</code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python generateMDP.py  --S 50 --A 20 --gamma 0.20 --mdptype continuing --rseed 0</code></li>
+    </ul>
+    <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">Task 1 - MDP Planning Algorithms</h3>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Given an MDP, your program must compute the optimal value
+      function V* and an optimal policy &#960;* by applying the algorithm that
+      is specified through the command line. Create a python file
+      called <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">planner.py</code> which accepts the following command-line arguments. </p>
+    <ul speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">--mdp</code> followed by a path to the input MDP file, and</li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">--algorithm</code> followed by one of <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">vi</code>, <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">hpi</code>, and <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">lp</code>. You must assign a default value out of vi, hpi, and lp to allow the code to run without this argument.</li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">--policy</code> (optional) followed by a policy file, for which the value function V^&#960; is to be evaluated.</li>
+    </ul>
+
+    The policy file has one line for each state, containing only a single integer giving the action.
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Make no assumptions about the location of the MDP file relative to
+      the current working directory; read it in from the path that will
+      be provided. The algorithms specified above correspond to Value
+      Iteration, Howard's Policy Iteration, and Linear Programming,
+      respectively. Here are a few examples of
+      how your planner might be invoked (it will always be invoked from its
+      own directory).</p>
+    <ul speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python planner.py --mdp /home/user/data/mdp-4.txt --algorithm vi</code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python planner.py --mdp /home/user/temp/data/mdp-7.txt --algorithm hpi</code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python planner.py --mdp /home/user/mdpfiles/mdp-5.txt --algorithm lp</code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python planner.py --mdp /home/user/mdpfiles/mdp-5.txt</code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python planner.py --mdp /home/user/mdpfiles/mdp-5.txt --policy pol.txt</code></li>
+    </ul>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Notice that the last two calls do not specify which algorithm to
+      use. For the fourth call, your code must have a default algorithm from
+      <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">vi</code>, <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">hpi</code>, and <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">lp</code> that gets
+      invoked internally. This feature will come handy when your
+      planner is used in Task 2. It gives you the flexibility to use
+      whichever algorithm you prefer. The fifth call requires you to
+      evaluate the policy given as input (rather than compute an
+      optimal policy). You are free to implement his operation in any
+      suitable manner.</p>
+
+      <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">You are not expected to code up a solver for LP; rather, you
+      can use available solvers as blackboxes. Your effort will be in
+      providing the LP solver the appropriate input based on the MDP,
+      and interpreting its output appropriately. Use the formulation
+      presented in class. We require you to use the Python
+      library <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">PuLP</code>. <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">PuLP</code> is convenient to
+      use directly from Python code: here is
+      a <a href="https://www.youtube.com/watch?v=7yZ5xxdkTb8" speechify-initial-font-family="Times" speechify-initial-font-size="16px">short
+      tutorial</a> and here is
+      a <a href="https://www.coin-or.org/PuLP/index.html" speechify-initial-font-family="Times" speechify-initial-font-size="16px">reference</a>. <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">PuLP</code>
+      version 2.4 is included in the requirements.txt file for the environment.</p>
+
+      <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">You are expected to write your own code for Value Iteration
+      and Howard's Policy Iteration; you may not use any custom-built
+      libraries that might be available for the purpose. You can use
+      libraries for solving linear equations in the policy evaluation
+      step but must write your own code for policy improvement. Recall
+      that Howard's Policy Iteration switches <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">all</b> improvable
+      states to some improving action; if there are two or more
+      improving actions at a state, you are free to pick anyone.</p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">It is certain that you will face some choices while implementing
+      your algorithms, such as in tie-breaking, handling terminal states,
+      and so on. You are free to resolve them in any reasonable way; just make
+      sure to note your approach in your report.</p>
+
+    <h4 speechify-initial-font-family="Times" speechify-initial-font-size="16px">Output Format</h4>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">The output of your planner must be in the following format
+      and <strong speechify-initial-font-family="Times" speechify-initial-font-size="16px">written to standard output, for both modes of operation. </strong> Note that, for policy evaluation, V* will be replaced by V^&#960;.</p>
+    <pre speechify-initial-font-family="monospace" speechify-initial-font-size="13px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">
+	V*(0)   &#960;*(0)
+	V*(1)   &#960;*(1)
+	.
+	.
+	.
+	V*(S - 1)   &#960;*(S - 1)
+    </code></pre>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">In the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">data/mdp</code> directory provided, you will find
+      output files corresponding to the MDP files, which have solutions in
+      the format above.</p>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Since your output will be checked automatically, make sure you have
+      nothing printed to stdout other than the S lines as above in
+      sequence. If the testing code is unable to parse your output, you will
+      not receive any marks.</p>
+    <blockquote speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"><strong speechify-initial-font-family="Times" speechify-initial-font-size="16px">Note:</strong></p>
+
+      <ol speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+	<li speechify-initial-font-family="Times" speechify-initial-font-size="16px">Your output has to be written to the standard output, not to any file.</li>
+	<li speechify-initial-font-family="Times" speechify-initial-font-size="16px">For values, print at least 6 places after the decimal point. Print more if you'd like, but 6
+	  (<code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">xxx.123456</code>) will suffice.</li>
+	<li speechify-initial-font-family="Times" speechify-initial-font-size="16px">If your code produces output that resembles the solution files: that is, S lines of the form
+	  <pre speechify-initial-font-family="monospace" speechify-initial-font-size="13px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">value + "\t" + action + "\n"
+	  </code></pre>
+
+	  or even
+	  <pre speechify-initial-font-family="monospace" speechify-initial-font-size="13px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">value + " " + action + "\n"
+	  </code></pre>
+
+	  <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">you should be okay. Make sure you don't print anything else.</p>
+	</li>
+	<li speechify-initial-font-family="Times" speechify-initial-font-size="16px">If there are multiple optimal policies, feel free to print any one of them.</li>
+      </ol>
+    </blockquote>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"> You are given a python script to verify the correctness of your submission format and solution:
+      <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">autograder.py</code>. The following are a few examples that can help you understand how to invoke
+      this script.
+    </p>
+    <ul speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python autograder.py --task 1</code> --&gt; Tests the
+	default algorithm set in <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">planner.py</code> on the all the MDP
+	instances given to you in the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">data/mdp</code> directory.</li>
+
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python autograder.py --task 1  --algorithm all</code>
+	--&gt; Tests all three algorithms + default algorithm on the all the
+	MDP instances give to you in the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">data/mdp</code>
+	directory.</li>
+
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python autograder.py --task 1 --algorithm vi</code> --&gt;
+	Tests only value iteration algorithm on the all the MDP instances
+	given to you in the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">data/mdp</code> directory.</li>
+
+    </ul>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">The script assumes the location of the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">data</code>
+      directory to be in the same directory. Run the script to check the
+      correctness of your submission format. Your code should pass all the
+      checks written in the script. You will be penalised if your code does
+      not pass all the checks. </p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"> Your code for any of the algorithms should not take more than one minute to run on any test instance.</p>
+
+
+    <hr speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+
+
+    <h2 speechify-initial-font-family="Times" speechify-initial-font-size="24px">Part 2: 2v1 Football</h2>
+
+
+    <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">The Game</h3>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    </p><p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Problem Description:</b><br speechify-initial-font-family="Times" speechify-initial-font-size="16px"> You are the manager of a
+      2-member football team. You want to prepare a strategy that
+      maximises the chances of scoring goals by doing MDP Planning!
+      You are tasked with the problem of Half Field Offense - scoring
+      a goal with two attackers against one defender. The football
+      half pitch is a 4x4 grid with a goal that is 2 units long. You
+      have two players - B1 and B2, with possession of the ball, whose
+      skill levels for different actions are parameterised by p and q
+      in [0, 0.5] and [0.6, 1]. Note that p and q correspond to
+      different actions by these players, and are identical for both
+      players. The opponent has a defender R. You must formulate this
+      as an MDP and score a goal before you lose possession! The game
+      ends when the players score a goal, or lose possession,
+      whichever occurs first.
+          </p>
+
+    <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <img src="./CS 747_ Programming Assignment 2_files/Introduction.png" width="200px" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      </p>
+      <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+        <font size="3" speechify-initial-font-family="Times" speechify-initial-font-size="16px">Fig 1: (The playground)</font>
+      </p>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    </p><p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Game positions: </b> <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    The squares of the grid are numbered from 1 to 16 row-wise. Then the
+    game position can be specified in the following format --
+
+    [B1_square, B2_square, R_square, ball_possession].
+
+    Here B1 and B2 are players you control and R is a player from the
+    opponent team. Ball possession is an integer from 1,2 indicating which
+    player has the possession.<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    Thus B1_square, B2_square, and R_square are 2-digit numbers, with a
+    leading 0 for square numbers below 10.
+    Note: In the problem statement, you will require x and y coordinates in
+    some cases, but you can use any origin/axis since only the relative
+    differences of coordinates matter.
+    
+</p>
+
+    <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <img src="./CS 747_ Programming Assignment 2_files/Square_Numbering.png" width="200px" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      </p>
+      <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+        <font size="3" speechify-initial-font-family="Times" speechify-initial-font-size="16px">Fig 2: (The positions)</font>
+      </p>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Actions:</b><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Attempt to move one player L, R, U, or D by 1 unit. [0,1,2,3 correspond to L, R, U, D for B1 and 4,5,6,7 correspond to L, R, U, D for B2]<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Attempt a pass to your teammate. [8]<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Attempt a shot on the goal. [9]<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Size of action space = 10.<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    </p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">You are provided with 3 opponent policy files in the data directory that the players can face in the game, giving the probability of the opponent action for each state.<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      Opponent Policies:<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      </p><ol speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+        <li speechify-initial-font-family="Times" speechify-initial-font-size="16px">Greedy Defense: Move towards the player with the ball.</li>
+        <li speechify-initial-font-family="Times" speechify-initial-font-size="16px">Park the Bus: Shuffle up and down in front of the goal.</li>
+        <li speechify-initial-font-family="Times" speechify-initial-font-size="16px">Random Policy: Move randomly, uniformly </li>
+      </ol> 
+
+Opponent actions (present in the state-opponent policy file as probabilities):<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Left movement<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Right movement<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Up movement<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+Down movement<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"></p>
+
+<p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Note that your planner will only compute a policy for the agent
+(that is, the team of B1 and B2). In order to do so, you will be given
+R's policy, but you will not compute or change R's policy.</p>
+    
+
+    <h4 speechify-initial-font-family="Times" speechify-initial-font-size="16px">Transition Function:</h4>
+<p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+      <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Movement:</b> For moving with the ball (i.e. if movement with
+      the player in possession of the ball), the probability of success in the
+      desired
+      direction is 1-2p and 2p probability of losing possession
+      directly.
+      For moving without the ball there is a 1-p probability of moving
+      in the desired direction and p probability of the game ending (without a goal) directly.
+      If a player chooses to move in a particular direction, there is
+      zero probability of moving in any other direction.
+      The only stochasticity in movement is regarding losing possession
+      directly according to the probabilities described above.
+      If possession is lost, the episode ends. Additionally, If a player
+      goes out of bounds the episode ends.
+      
+</p>
+
+<p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+  <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Tackling:</b> There are two cases in which a tackling situation arises - <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+  A. If a player with possession of the ball and the opponent transition
+  to a position where they share the same square. The figures below show
+  an example game position and the actions chosen by the player to reach
+  this situation. In both of these cases, the probability of the tackle being successful given the move was successful is 0.5. The final probability values are shown in the figure.
+  Also, note that a tackling situation only arises when the player with the ball attempts to move.
+
+</p>
+          
+<p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  <img src="./CS 747_ Programming Assignment 2_files/Tackling_Case_A.png" width="200px" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  </p>
+  <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <font size="3" speechify-initial-font-family="Times" speechify-initial-font-size="16px">Fig 3, 4: Tackling case A</font>
+  </p>
+<p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+  </p><p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    State: Fig 3 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    Action: B1 attempts to move right<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    Opponent Action: Move left from square 7 to 6 according to policy <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    Outcomes: <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(Fig 4 | R moves to square 6) = 0.5 - p</b>, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(episode ends | R moves to square 6) = 0.5 + p</b><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  </p>
+
+  <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    Note: Straight arrows represent player movement. Red squares represent the ball location. <br speechify-initial-font-family="Times" speechify-initial-font-size="16px"><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    B. If a player with possession of the ball and the opponent are on adjacent squares and they successfully move towards each other, thus swapping squares. The figures below show an example game position and the actions chosen by the player to reach this situation.
+
+  </p>
+   
+  <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <img src="./CS 747_ Programming Assignment 2_files/Tackling_Case_B.png" width="200px" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    </p>
+    <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <font size="3" speechify-initial-font-family="Times" speechify-initial-font-size="16px">Fig 5, 6: Tackling case B</font>
+    </p>
+
+  <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    State: Fig 5 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    Action: B1 attempts to move right<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    Opponent Action: Move left from square 6 to 5 according to policy <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    Outcomes: <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(Fig 6 | R moves to square 6) = 0.5 - p</b>, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(episode ends | R moves to square 6) = 0.5 + p</b><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    </p>
+
+  <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+<b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Passing:</b> The probability is a function of the distance from the teammate for passing the ball. If player B1 is on (x1, y1) and B2 is on (x2, y2) then the probability of a successful pass is
+q - 0.1*max(|x1-x2|, |y1-y2|). This probability is halved if R moves to a square in between B1 and B2, including the squares of B1 and B2. A square is said to be in between two squares if its centre lies on the line joining the centres of the two squares. If a pass fails, then the game ends. While transitioning from one timestep to the next, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">assume that R moves first and then a pass is attempted by the passer</b>. Thus the above condition must be checked for the new location of R. 
+Example configurations where R is considered to be in between are given below.
+</p>
+<p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  <img src="./CS 747_ Programming Assignment 2_files/Passing_Between.png" width="200px" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  </p>
+  <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <font size="3" speechify-initial-font-family="Times" speechify-initial-font-size="16px">Fig 7, 8, 9: Passing with the opponent in between (Note: Curved arrows represent an attempted pass.)    </font>
+</p>
+
+<p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  State: Fig 7 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Action: B1 attempts a pass to B2 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Opponent Action: Move from some square to square 11 according to policy <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Outcomes: <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(successful pass | R moves to square 11) = 0.5q - 0.15</b>, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(episode ends | R moves to square 11) = 1.15 - 0.5q</b> <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+ 
+ 
+   State: Fig 8 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Action: B1 attempts a pass to B2 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Opponent Action: Move from some square to square 7 according to policy <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Outcomes: <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(successful pass | R moves to square 7) = 0.5q - 0.1</b>, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(episode ends | R moves to square 7) = 1.1 - 0.5q</b> <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+ 
+ 
+  State: Fig 9 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Action: B1 attempts a pass to B2 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Opponent Action: Move from some square to square 6 according to policy <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  Outcomes: <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(successful pass | R moves to square 6) = 0.5q - 0.05</b>, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(episode ends | R moves to square 6) = 1.05 - 0.5q</b> <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+ </p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Shooting:</b> For shooting towards the goal, the probability is a function of the distance of the x coordinate of the shooter. If B1 has the ball and is on (x1, y1) the probability of a goal is 
+<b speechify-initial-font-family="Times" speechify-initial-font-size="16px">q - 0.2*(3-x1)</b>. This probability is halved if there is an opponent player in the two squares in front of the goal. If a shot fails, then the game ends. While transitioning from one timestep to the next, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">assume that R moves first and then a shot is attempted by the shooter</b>. Thus the above condition must be checked for the new location of R. 
+    </p>
+
+
+    <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <img src="./CS 747_ Programming Assignment 2_files/Shooting_Between.png" width="200px" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      </p>
+      <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+        <font size="3" speechify-initial-font-family="Times" speechify-initial-font-size="16px">Fig 10: Shooting with the opponent at the goal (Note: Wedged arrows represent an attempted shot.)    </font>
+    </p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      State: Fig 10 <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      Action: B1 attempts a shot on goal <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      Opponent Action: Move from some square to square 8 according to policy <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      Outcomes: <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(goal | R moves to square 8) = 0.5q - 0.2</b>, <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">P(episode ends | R moves to square 8) = 1.2 - 0.5q</b> <br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+     
+     
+     </p>
+
+<p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <b speechify-initial-font-family="Times" speechify-initial-font-size="16px">Inputs to be provided to students:</b>
+A list of game positions in the above coordinate system. 
+3 opponent policy documents with the action probabilities of each action by the opponent from each state in the above format.
+</p>
+
+<p speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  <b speechify-initial-font-family="Times" speechify-initial-font-size="16px"> Output required from students:</b>
+	Expected number of goals scored against each of the three opponent policies. 
+Two graphs indicating the probability of winning starting from position
+[05, 09, 08, 1] (shown below) against policy-1 (greedy defense)<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+[Graph 1]: For p in {0, 0.1, 0.2, 0.3, 0.4, 0.5} and q = 0.7<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+[Graph 2]: For q in {0.6, 0.7, 0.8, 0.9, 1} and p = 0.3<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+</p>
+
+<p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  <img src="./CS 747_ Programming Assignment 2_files/Starting_State_Graphs.png" width="200px" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+  </p>
+  <p align="center" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <font size="3" speechify-initial-font-family="Times" speechify-initial-font-size="16px">Fig 11: Starting state</font>
+</p>
+
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"></p><h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">Task 2 - MDP for 2v1 Football</h3>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Rather than write a solver from scratch for the above game, your job is to
+      translate the above task into an MDP, and use the solver you
+      have already created in Task 1.</p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Your first step is to write an encoder script which takes as
+      input the player parameters p and q and the opponent policy, and encode the game into an MDP (use
+      the same format as described above). </p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Your next step is to take the output of the encoder script and
+      use it as input to <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">planner.py</code>. As
+      usual, <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">planner.py</code> will provide as output an optimal
+      policy and value function.</p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Finally, create a python file
+      called <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">decoder.py</code> that will take the output from
+      <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">planner.py</code> along with an opponent file for referring to the order of positions, and convert it into a policy file in the format given above for the game, having
+      the same format as stated above. Thus, the sequence of encoding,
+      planning, and decoding results in the computation of an optimal
+      policy for a player given player parameters and the player parameters and opponent policy<br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    </p><p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Here is the sequence of instructions that we will execute to
+      obtain your optimal counter-policy.</p>
+
+    <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python encoder.py --opponent data/football/test-1.txt --p 0.1 --q 0.7 &gt; football_mdp.txt</code><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python planner.py --mdp football_mdp.txt &gt;  value.txt</code><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python decoder.py --value-policy value.txt --opponent data/football/test-1.txt &gt; policyfile.txt</code><br speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">As stated earlier, note that the planner must use its default
+      algorithm. You can use <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">autograder.py</code> to verify
+      that your encoding and decoding scripts produce output in the
+      correct format, and correctly for the three provided testcases, one for each policy and with different player parameters. Here is how you would use it.</p>
+
+    <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python autograder.py --task 2</code>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">The eventual output <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">policyfile</code> will be evaluated by
+      us (using our own code) to check if it achieves optimal score from
+      every valid state.</p>
+
+    <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">Analysis</h3>
+
+
+    Attach the two graphs showing the variation in probability of winning with player parameters in the report along with observations. Do 
+the trends match with your intuition?
+    <hr speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+    <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">Submission</h3>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"> Prepare a short <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">report.pdf</code> file, in which you put
+      your design decisions, assumptions, and observations about the
+      algorithms (if any) for Task 1. Also describe how you formulated the
+      MDP for the Football problem: that is, for Task 2. Finally, include the 2 graphs for Task 2 with your
+      observations.</p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Place all the files in which you have written code in a directory named <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">submission</code>. Tar and Gzip the directory to produce a single compressed file (submission.tar.gz). It must contain the following files. </p>
+    <ol speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">planner.py </code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">encoder.py </code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">decoder.py </code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">report.pdf </code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px"><code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">references.txt </code></li>
+      <li speechify-initial-font-family="Times" speechify-initial-font-size="16px">Any other files required to run your source code</li>
+    </ol>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Submit this compressed file on Moodle, under Programming Assignment 2.</p>
+
+
+
+    <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">Evaluation</h3>
+
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"> 7 marks are reserved for Task 1 (1 marks for the correctness of
+      your Value Iteration algorithm, and 2.5 marks for Howard's Policy 
+Iteration, Linear Programming each, and 1 mark for the policy 
+evaluation). We shall verify the correctness by computing and comparing 
+optimal
+      policies for a large number of unseen MDPs. If your code fails any
+      test instances, you will be penalised based on the nature of the
+      mistake made.</p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px"> 8 marks are allotted for the correctness of Task 2. Once
+      again, we will run the encoder-planner-decoder sequence on a
+      number of player parameters and verify
+      if the policy you compute is indeed optimal. Within Task 2, 5 marks are assigned for the correctness
+      of the encoder-planner-decoder sequence, and 3 marks are assigned to the graphs and observations.</p>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">The TAs and instructor may look at your source code to
+      corroborate the results obtained by your program, and may also
+      call you to a face-to-face session to explain your code.</p>
+
+    <h3 speechify-initial-font-family="Times" speechify-initial-font-size="18.72px">Deadline and Rules</h3>
+
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Your submission is due by 11.55 p.m., Sunday, October
+      15. Finish working on your submission well in advance, keeping
+      enough time to generate your data, compile the results, and
+      upload to Moodle.</p>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Your submission will not be evaluated (and will be given a score of
+      zero) if it is not uploaded to Moodle by the deadline. Do not send
+      your code to the instructor or TAs through any other
+      channel. Requests to evaluate late submissions will not be
+      entertained.</p>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">Your submission will receive a score of zero if your code does not
+      execute on the specified Python and libraries versions in the environment. To make sure you have uploaded the right
+      version, download it and check after submitting (but before the
+      deadline, so you can handle any contingencies before the deadline
+      lapses).
+    </p>
+    <p speechify-initial-font-family="Times" speechify-initial-font-size="16px">You are expected to comply with the rules laid out in the "Academic
+      Honesty" section on the course web page, failing which you are liable
+      to be reported for academic malpractice.</p>
+
+    <hr speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <hr speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+
+
+
+
+
+    <link rel="stylesheet" href="./CS 747_ Programming Assignment 2_files/blockedPage.css" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <script src="./CS 747_ Programming Assignment 2_files/blockedPage.js" speechify-initial-font-family="Times" speechify-initial-font-size="16px"></script>
+    <style speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+        #otto-toastContainer {
+            box-sizing: border-box;
+            display: none;
+            padding: 5px 20px;
+            border-radius: 7px;
+            background-color: #fff;
+            z-index: 10000;
+            position: fixed;
+            top:5%;
+            right: 5%;
+            border: 2px solid rgba(0,0,0,0.3);
+            width: 330px;
+            height: auto;
+            flex-direction: column;
+            justify-items: center;
+            padding: 20px;
+            gap:10px;
+        }
+
+     #otto-containerHolder{
+        display: flex;
+        flex-direction:column;
+    }
+
+#otto-toastCounter {
+  box-sizing: border-box;
+  font-size: 30px;
+  font-weight: bold;
+  color: #000;
+  font-family: sans-serif;
+  margin:0px;
+}
+
+#otto-toastLabel {
+  box-sizing: border-box;
+  font-family: sans-serif;
+  font-size: 14px;
+  color: #7d8ba0;
+}
+
+#otto-ProgressContainer {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  background-color: #f4f3f4;
+  border-radius: 30px;
+  height: 30px;
+  overflow: hidden;
+}
+
+#otto-progressBar {
+  box-sizing: border-box;
+  position: absolute;
+  border-radius: 30px;
+  width: 50%;
+  height: 100%;
+  background-color: red;
+}
+
+    </style>
+
+
+
+   <div id="otto-toastContainer" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+    <span id="otto-toastLabel" speechify-initial-font-family="sans-serif" speechify-initial-font-size="14px">This site will be blocked in</span>
+    <p id="otto-toastCounter" speechify-initial-font-family="sans-serif" speechify-initial-font-size="30px">00:00</p>
+    <div id="otto-ProgressContainer" speechify-initial-font-family="Times" speechify-initial-font-size="16px">
+        <div id="otto-progressBar" speechify-initial-font-family="Times" speechify-initial-font-size="16px"></div>
+    </div>
+   </div>
+
+
+<div id="speechify-global-notifications" speechify-initial-font-family="Times" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-global-notifications-root" style="position: fixed; top: 0px; left: 0px; height: 100vh; z-index: 2147483644; width: 0vw;"></div></template></div><div id="speechify-summarization-fullscreen-mode" style="position: fixed; inset: 0px; overflow: auto; background: white; z-index: 1999; display: none;" speechify-initial-font-family="Times" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-summarization-fullscreen-mode-root" style="margin: 0px 33%;"></div></template></div><div id="speechify-shortcuts-prompt" speechify-initial-font-family="Times" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-shortcuts-prompt-root"></div></template></div><div id="speechify-screenshot-mode" style="position: fixed; top: 0px; right: 0px; width: 100%; min-height: 100%; z-index: 2147483640; display: none;" speechify-initial-font-family="Times" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-screenshot-mode-root" style="width: 100%; height: 100%; position: relative;"></div></template></div></body></html>

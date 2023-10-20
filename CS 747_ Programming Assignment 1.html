@@ -1,0 +1,152 @@
+
+<!-- saved from url=(0092)https://www.cse.iitb.ac.in/~shivaram/teaching/cs747-a2023/pa-1/programming-assignment-1.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+      
+      <link rel="stylesheet" type="text/css" href="./CS 747_ Programming Assignment 1_files/style.css">
+      <title>CS 747: Programming Assignment 1</title>
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1073.0" data-gr-ext-installed="" class="vsc-initialized">
+      <br speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+
+      <center speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+            <h2 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="24px">
+                  CS 747: Programming Assignment 1
+            </h2>
+            <h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Total marks: 15</h3>
+            <h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">(Prepared by Vedang Gupta and Jujhaar Singh)</h3>
+      </center>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">This assignment tests your understanding of the regret minimisation algorithms discussed in class, and ability to extend them to different scenarios. There are 4 tasks, which add up to 15 marks. To begin, in Task 1, you will implement UCB, KL-UCB, and Thompson Sampling, more or less identical to the versions discussed in class. Task 2A involves studying the effect of the difference between the means of two arms on the regret accumulated by the UCB algorithm. Task 2B involves studying and comparing the effect of the value of the means on the regret accumulated by UCB and KL-UCB while keeping the difference between the means constant. Task 3 involves maximising the reward for a bandit setting where pulls are noisy and give faulty outputs with a certain probability. Task 4 involves dealing with multiple bandit instances where the bandit instance for a particular pull is chosen at random. Your task would be to maximise the reward for this multiple-bandit setting. </p>
+<h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Pre-requisite Software</h3>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">All the code you write for this assignment must be in Python 3.8.10. You can install Python 3.8.10 for your system from <a href="https://www.python.org/downloads/release/python-3810/" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">here</a>. </p>
+      <p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px"> Your code will be tested using a python virtual environment. To set up the virtual environment, follow the instructions provided in <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">virtual-env.txt</code> which is included in the compressed directory linked below.</p>
+
+      <h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Code Structure</h3>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">This <a href="https://www.cse.iitb.ac.in/~shivaram/teaching/cs747-a2023/pa-1/code-v1.tar.gz" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">compressed directory</a> has all the code and data files for the assignment. <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">bernoulli_bandit.py</code> defines the BernoulliBandit which, strictly speaking, you do not need to worry about. It is, however, advised that you read through the code to understand how <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">pull</code> and other functions work. We have also provided <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">simulator.py</code> to run simulations and generate plots, which you'll have to submit as described later. Finally, there's <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">autograder.py</code> which evaluates your algorithms for a fixed few bandit instances, and outputs the score you would have received if we were evaluating your algorithms on these instances. The only files you need to edit are <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task1.py</code>, <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task2.py</code>, <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task3.py</code>, and <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task4.py</code>. Do not edit any other files. You are allowed to comment/uncomment the final few lines of <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">simulator.py</code> which you can use to generate the plots for Task 1 or experiment with tasks 3 and 4.
+</p><p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">For evaluation, we will use another set of bandit instances in the autograder, and use its score for approximately 75% of the evaluation. So if your code produces an error, it will directly receive a 0 score in this part. It will also get 0 marks if for any task whatsoever, the autograder takes over 20 minutes to run the task. The remaining part of the evaluation will be done based on your report, which includes plots, and explanation of your algorithms. See the exact details below.</p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">For tasks 1, 3 and 4, you can expect that the number of arms in the bandit instances used in our undisclosed test cases will be at most 40, and similarly the horizon at most 20,000. (Note that longer horizons are used in your plots, which might take some time to generate.) </p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">To test your implementation against the given test cases, run the autograder as follows: <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">python3 autograder.py --task TASK</code>.
+ Here <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">TASK</code> can be one of: <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">1, 3, 4</code> or <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">all</code>. If <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">TASK</code> is <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">1</code>, then you also need to provide another argument: <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">--algo ALGO</code>, where <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">ALGO</code> can be one of: <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">ucb, kl_ucb, thompson</code>, or <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">all</code>.</p>
+
+      <p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Your code will be evaluated using the python virtual environment. Ensuring that your code using the activated python virtual environment passes the autograder tests on your machine should be sufficient for your code to work during evaluation. </p>
+      
+<h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Problem Statements for Tasks</h3>
+<h4 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Task 1</h4>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">In this first task, you will implement the sampling algorithms: (1) UCB, (2) KL-UCB, and (3) Thompson Sampling. This task is straightforward based on the class lectures. The instructions below tell you about the code you are expected to write.</p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Read <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task1.py</code>. It contains a sample implementation of epsilon-greedy for you to understand the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">Algorithm</code> class. You have to edit the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">__init__</code> function to create any state variables your algorithm needs, and implement <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">give_pull</code> and <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">get_reward</code>. <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">give_pull</code> is called whenever it is the algorithm's decision to pick an arm and it must return the index of the arm your algorithm wishes to pull (lying in 0, 1, ... self.num_arms-1). <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">get_reward</code> is called whenever the environment wants to give feedback about to the algorithm. It will be provided the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">arm_index</code> of the arm and the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">reward</code> seen (0/1). Note that the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">arm_index</code> will be the same as the one returned by the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">give_pull</code> function called earlier. For more clarity, refer to <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">single_sim</code> function in <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">simulator.py</code>.</p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Once done with the implementations, you can run <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">simulator.py</code> to see the regrets over different horizons. Save the generated plot and add it your report, with apt captioning. You may also run <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">autograder.py</code> to evaluate your algorithms on the provided test instances.</p>
+<h4 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Task 2</h4>
+<h5 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="13.28px">Part A</h5>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">This task explores the effect of the difference between the means of arms on the regret accumulated by the UCB algorithm. For this task, take two-armed bandit instances (with means [p1, p2]) with the higher mean arm fixed (say, p1), and vary the other arm's mean (p2) from 0 to p1. For the assignment, p1 = 0.9, and p2 varies from 0 to 0.9 (both inclusive) in steps of 0.05. Do this for a horizon of 30000. Plot the variation of regret with p2. Clearly state your observations from the plot, and explain the reason(s) behind the observations.</p>
+<h5 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="13.28px">Part B</h5>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">This task involves comparing the behaviour of UCB and KL-UCB algorithms on two-armed bandits. The task is to compare the effect of the value of the means on the algorithms while keeping the difference between the means fixed. For this task, take Delta = p1 - p2 = 0.1. Again, vary p2 from 0 to 0.9 (both inclusive) in steps of 0.05 for a horizon of 30000. Plot the variation of regret for both algorithms on different plots with respect to the instances (you may plot with respect to either p1 or p2, but clearly label that in your plots). State and compare your observations for the variations of regret for each algorithm and explain the reason behind your observations. </p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">For both of the above tasks, you can edit any code in the file <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task2.py</code>. It includes all the necessary classes and functions to simulate a bandit instance but is well isolated from all the other tasks, so you are free to edit them as you wish. You only need to call the function <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task2</code> to generate your array of average regrets given the two arrays of p1s and p2s. The bandit instances are created according to corresponding indexes of the arrays. For example, if your array for p1s = [0.2, 0.3] and p2s = [0.1, 0.2], the function will return an array of regrets corresponding to the instances (0.2, 0.1) and (0.3, 0.2).</p>
+<h4 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Task 3</h4>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">This task involves dealing with a bandit instance where your pulls are no longer guaranteed to be successful and have a probability of giving faulty outputs. When you pull an arm, it has a certain known probability of giving the correct output of the arm, otherwise it returns a 0 or 1 uniformly at random. Your task is to come up with a good algorithm to maximise the reward for this faulty bandit setting. </p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">For the above task, you must edit the file <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task3.py</code>. The structure of the algorithm class is very similar to that in <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task1.py</code> with the only difference being here you are also provided with the probability of a faulty pull labelled <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">fault</code> in the code. Again, you must specify the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">give_pull</code> and <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">get_reward</code> functions appropriately. </p>
+<h4 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Task 4</h4>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">This task involves dealing with two bandit instances at once! In this task, whenever you specify an arm index to pull, one of two given bandit instances is chosen uniformly at random, and the arm corresponding to your provided index is pulled (both instances have equal number of arms). Once an arm is pulled, the environment returns the reward obtained along with which bandit instance was chosen for that pull. Your task is to come up with a good algorithm to maximise the reward for this multi-multi-armed bandit setting. </p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">For the above task, you must edit the file <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task4.py</code>. The structure of the algorithm class is very similar to that in <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task1.py</code> with the only difference being here the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">get_reward</code> function also takes as input <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">set_pulled</code> which specifies which bandit instance was chosen (0 = 1st instance, 1 = 2nd instance). Again, you must specify the <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">give_pull</code> and <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">get_reward</code> functions appropriately. </p>
+<h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Report</h3>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Your report needs to have all the plots that <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">simulator.py</code> generates as well as your plots from <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task2.py</code>. There are 6 plots in total (3 for Task 1, 1 for Task 2A, 2 for Task 2B). You do not need to include the epsilon-greedy plot in your report. You may, of course, include any additional plots you generate. Your plots should be neatly labelled and captioned for the report. For Task 2, as explained in the questions above, state your observations and explain the reasons behind them. In addition, you need to explain your method for tasks 1, 3 and 4. For Task 1, explain your code for the three algorithms (implementational details, parameter settings, etc.), and for tasks 3 and 4, give a clear description of your approaches to tackle the problems. If your descriptions are not sufficiently clear and informative, you will not receive full marks.</p>
+<h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Submission</h3>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">You have to submit one tar.gz file with the name <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">(your_roll_number).tar.gz</code>. Upon extracting, it must produce a folder with your roll number as its name. It must contain a <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">report.pdf</code> - the report as explained above, and four code files: <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">task1.py, task2.py, task3.py, task4.py</code>. You must also include a <code speechify-initial-font-family="monospace" speechify-initial-font-size="13px">references.txt</code> file if you have referred to any resources while working on this assignment (see the section on Academic Honesty on the course web page).</p>
+<h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Evaluation</h3>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+The assignment is worth 15 marks. 
+For Task 1, 4 marks are for the code and will be evaluated by the autograder, and 1 mark is for the report. 
+For Task 2, each part (A and B) are worth 2 marks. The evalaution is based solely off your plots, the plotting script used, and your explanation of the results generated. There will be no autograded testcases for Task 2.  
+</p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+For tasks 3 and 4, 2 marks are for the code and will be evaluated by the autograder, and 1 mark is for the report. For tasks 3 and 4, we will use a partial marking system, where "FAILED" test cases contribute 0 marks, "PARTIALLY PASSED" test cases contribute 0.5 marks, and "PASSED" testcases contribute 1 mark, the total of which will then be normalized to 2 marks depending on the number of test cases. "PARTIALLY PASSED" is decided according to a softer threshold on the reward accumulated, while "PASSED" is decided according to a more competitive threshold.</p>
+    
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">The autograder used for evaluating will use a different set of test instances from the ones provided. Note that runtime errors in the script will lead to 0 marks for that test instance. You will also be given 0 marks for a test instance if your code takes more than 20 minutes to run for that test instance.</p>
+
+<h3 speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="18.72px">Deadline and Rules</h3>
+
+      <p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Your submission is due by <b speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">11.55 p.m., Sunday, September 10</b>. Finish working on your submission well in advance, keeping enough time to test your code, generate your plots, compile the results, and upload to Moodle.</p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Your submission will not be evaluated (and will be given a score of zero) if it is not uploaded to Moodle by the deadline. Do not send your code to the instructor or TAs through any other channel. Requests to evaluate late submissions will not be entertained.</p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">Your submission will receive a score of zero if your code does not execute using the given python virtual environment. To make sure you have uploaded the right version, download it and check after submitting (but well before the deadline, so you can handle any contingencies before the deadline lapses).</p>
+<p speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">You are expected to comply with the rules laid out in the "Academic Honesty" section on the course web page, failing which you are liable to be reported for academic malpractice.</p>
+
+<hr speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+<hr speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+
+
+
+    <link rel="stylesheet" href="./CS 747_ Programming Assignment 1_files/blockedPage.css" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+    <script src="./CS 747_ Programming Assignment 1_files/blockedPage.js" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px"></script>
+    <style speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+        #otto-toastContainer {
+            box-sizing: border-box;
+            display: none;
+            padding: 5px 20px;
+            border-radius: 7px;
+            background-color: #fff;
+            z-index: 10000;
+            position: fixed;
+            top:5%;
+            right: 5%;
+            border: 2px solid rgba(0,0,0,0.3);
+            width: 330px;
+            height: auto;
+            flex-direction: column;
+            justify-items: center;
+            padding: 20px;
+            gap:10px;
+        }
+
+     #otto-containerHolder{
+        display: flex;
+        flex-direction:column;
+    }
+
+#otto-toastCounter {
+  box-sizing: border-box;
+  font-size: 30px;
+  font-weight: bold;
+  color: #000;
+  font-family: sans-serif;
+  margin:0px;
+}
+
+#otto-toastLabel {
+  box-sizing: border-box;
+  font-family: sans-serif;
+  font-size: 14px;
+  color: #7d8ba0;
+}
+
+#otto-ProgressContainer {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  background-color: #f4f3f4;
+  border-radius: 30px;
+  height: 30px;
+  overflow: hidden;
+}
+
+#otto-progressBar {
+  box-sizing: border-box;
+  position: absolute;
+  border-radius: 30px;
+  width: 50%;
+  height: 100%;
+  background-color: red;
+}
+
+    </style>
+
+
+
+   <div id="otto-toastContainer" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+    <span id="otto-toastLabel" speechify-initial-font-family="sans-serif" speechify-initial-font-size="14px">This site will be blocked in</span>
+    <p id="otto-toastCounter" speechify-initial-font-family="sans-serif" speechify-initial-font-size="30px">00:00</p>
+    <div id="otto-ProgressContainer" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px">
+        <div id="otto-progressBar" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px"></div>
+    </div>
+   </div>
+
+
+<div id="speechify-summarization-fullscreen-mode" style="position: fixed; inset: 0px; overflow: auto; background: white; z-index: 1999; display: none;" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-summarization-fullscreen-mode-root" style="margin: 0px 33%;"></div></template></div><div id="speechify-global-notifications" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-global-notifications-root" style="position: fixed; top: 0px; left: 0px; height: 100vh; z-index: 2147483644; width: 0vw;"></div></template></div><div id="speechify-screenshot-mode" style="position: fixed; top: 0px; right: 0px; width: 100%; min-height: 100%; z-index: 2147483640; display: none;" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-screenshot-mode-root" style="width: 100%; height: 100%; position: relative;"></div></template></div><div id="speechify-shortcuts-prompt" speechify-initial-font-family="&quot;Times New Roman&quot;" speechify-initial-font-size="16px"><template shadowrootmode="open"><div id="speechify-shortcuts-prompt-root"></div></template></div></body></html>
